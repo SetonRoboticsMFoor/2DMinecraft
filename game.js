@@ -1,6 +1,6 @@
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
-const WORLD_W = 180;
+const WORLD_W = 540;
 const WORLD_H = 52;
 const TILE = 24;
 const blocks = {
@@ -13,9 +13,11 @@ const blocks = {
   coal: { name: 'Coal', solid: true, color: '#48565a', top: '#28363a' }
 };
 const hotbarItems = ['grass', 'dirt', 'stone', 'wood', 'leaves', 'coal'];
+const miningHitsRequired = { grass: 1, leaves: 2, wood: 5, stone: 10 };
 const inventory = { grass: 8, dirt: 8, stone: 0, wood: 0, leaves: 0, coal: 0 };
 let world = [], surface = [], seed = 0, selected = 0, day = 1;
 let viewWidth = 0, viewHeight = 0, cameraX = 0, cameraY = 0, lastTime = 0, hintTimer;
+let miningTarget = null, miningHits = 0;
 const keys = {};
 const player = { x: 0, y: 0, width: 0.7, height: 1.7, vx: 0, vy: 0, grounded: false };
 
@@ -48,6 +50,7 @@ function generateWorld() {
     }
   }
   player.x = 14; player.y = surface[14] - player.height - .05; player.vx = 0; player.vy = 0;
+  miningTarget = null; miningHits = 0;
   Object.keys(inventory).forEach(item => { inventory[item] = item === 'grass' || item === 'dirt' ? 8 : 0; });
   document.querySelector('#seed-value').textContent = seed;
   day += 1; document.querySelector('#day-count').textContent = String(day).padStart(2, '0');
@@ -91,7 +94,7 @@ function render() {
 function loop(time) { const dt = Math.min(.033, (time-lastTime)/1000 || 0); lastTime = time; update(dt); render(); requestAnimationFrame(loop); }
 function screenToTile(event) { const rect = canvas.getBoundingClientRect(); return { x: Math.floor((event.clientX - rect.left + cameraX) / TILE), y: Math.floor((event.clientY - rect.top + cameraY) / TILE) }; }
 function inReach(x, y) { return Math.hypot(x + .5 - (player.x + .35), y + .5 - (player.y + .8)) < 5; }
-function interact(event) { event.preventDefault(); const { x, y } = screenToTile(event); if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H || !inReach(x, y)) return showToast('TOO FAR AWAY'); if (event.button === 2) { const type = hotbarItems[selected]; if (world[y][x] === 'air' && inventory[type] > 0 && !collides(x, y)) { world[y][x] = type; inventory[type] -= 1; showToast(`PLACED ${blocks[type].name.toUpperCase()}`); } } else if (world[y][x] !== 'air') { const type = world[y][x]; world[y][x] = 'air'; if (type !== 'grass' || inventory.grass < 24) inventory[type] += 1; showToast(`MINED ${blocks[type].name.toUpperCase()}`); } updateInventory(); }
+function interact(event) { event.preventDefault(); const { x, y } = screenToTile(event); if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H || !inReach(x, y)) return showToast('TOO FAR AWAY'); if (event.button === 2) { miningTarget = null; miningHits = 0; const type = hotbarItems[selected]; if (world[y][x] === 'air' && inventory[type] > 0 && !collides(x, y)) { world[y][x] = type; inventory[type] -= 1; showToast(`PLACED ${blocks[type].name.toUpperCase()}`); } } else if (world[y][x] !== 'air') { const type = world[y][x]; const target = `${x},${y}`; if (miningTarget !== target) { miningTarget = target; miningHits = 0; } miningHits += 1; const requiredHits = miningHitsRequired[type] || 1; if (miningHits < requiredHits) { showToast(`${blocks[type].name.toUpperCase()} ${miningHits} / ${requiredHits}`); } else { world[y][x] = 'air'; miningTarget = null; miningHits = 0; if (type !== 'grass' || inventory.grass < 24) inventory[type] += 1; showToast(`MINED ${blocks[type].name.toUpperCase()}`); } } updateInventory(); }
 function blockIcon(type) { return `<i class="block-icon" style="background:${blocks[type].color};box-shadow:inset 0 4px ${blocks[type].top}, inset 0 -5px rgba(20,35,33,.12)"></i>`; }
 function updateInventory() { const total = Object.values(inventory).reduce((a,b) => a+b, 0); document.querySelector('#inventory-total').textContent = `${total} items`; document.querySelector('#inventory').innerHTML = hotbarItems.map(item => `<div class="item">${blockIcon(item)}<b>${inventory[item]}</b></div>`).join(''); document.querySelector('#hotbar').innerHTML = hotbarItems.map((item, index) => `<button class="slot ${index === selected ? 'active' : ''}" data-slot="${index}" title="${blocks[item].name}"><span>0${index+1}</span>${blockIcon(item)}<b>${inventory[item]}</b></button>`).join(''); }
 function updateReadout() { document.querySelector('#coordinates').textContent = `${String(Math.floor(player.x)).padStart(3,'0')}, ${String(Math.floor(player.y)).padStart(3,'0')}`; document.querySelector('#altitude').textContent = player.grounded ? 'SURFACE' : player.vy < 0 ? 'RISING' : 'FALLING'; const logs = inventory.wood; document.querySelector('#objective-count').textContent = `${Math.min(logs,8)} / 8 logs`; document.querySelector('#progress-bar').style.width = `${Math.min(100, logs/8*100)}%`; document.querySelector('#objective-text').textContent = logs >= 8 ? 'Crafting is unlocked' : 'Gather wood to begin'; }
