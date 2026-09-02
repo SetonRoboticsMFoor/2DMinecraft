@@ -83,11 +83,27 @@ function drawBlock(type, x, y, size = TILE) {
   if (type === 'wood') { ctx.fillStyle = '#6d4934'; ctx.fillRect(x + size*.42, y, size*.14, size); }
   ctx.strokeStyle = 'rgba(23,35,35,.11)'; ctx.strokeRect(x + .5, y + .5, size - 1, size - 1);
 }
+function drawMiningCracks(x, y, type) {
+  const hits = miningProgress.get(`${Math.floor((x + cameraX) / TILE)},${Math.floor((y + cameraY) / TILE)}`) || 0;
+  const requiredHits = miningHitsRequired[type] || 1;
+  if (!hits || requiredHits <= 1) return;
+  const progress = Math.min(1, hits / requiredHits);
+  ctx.save();
+  ctx.strokeStyle = `rgba(20, 27, 27, ${0.35 + progress * 0.45})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x + TILE * .52, y + TILE * .08); ctx.lineTo(x + TILE * .42, y + TILE * .42); ctx.lineTo(x + TILE * .66, y + TILE * .58);
+  if (progress > .25) { ctx.moveTo(x + TILE * .42, y + TILE * .42); ctx.lineTo(x + TILE * .18, y + TILE * .72); }
+  if (progress > .5) { ctx.moveTo(x + TILE * .66, y + TILE * .58); ctx.lineTo(x + TILE * .84, y + TILE * .84); }
+  if (progress > .75) { ctx.moveTo(x + TILE * .66, y + TILE * .58); ctx.lineTo(x + TILE * .56, y + TILE * .9); }
+  ctx.stroke();
+  ctx.restore();
+}
 function render() {
   ctx.clearRect(0, 0, viewWidth, viewHeight); ctx.fillStyle = '#b8dfe1'; ctx.fillRect(0, 0, viewWidth, viewHeight);
   ctx.fillStyle = 'rgba(255,247,200,.8)'; ctx.beginPath(); ctx.arc(viewWidth*.78, viewHeight*.2, 30, 0, Math.PI*2); ctx.fill();
   const startX = Math.max(0, Math.floor(cameraX / TILE) - 1), endX = Math.min(WORLD_W, Math.ceil((cameraX + viewWidth) / TILE) + 1), startY = Math.max(0, Math.floor(cameraY / TILE) - 1), endY = Math.min(WORLD_H, Math.ceil((cameraY + viewHeight) / TILE) + 1);
-  for (let y = startY; y < endY; y += 1) for (let x = startX; x < endX; x += 1) drawBlock(world[y][x], x*TILE-cameraX, y*TILE-cameraY);
+  for (let y = startY; y < endY; y += 1) for (let x = startX; x < endX; x += 1) { drawBlock(world[y][x], x*TILE-cameraX, y*TILE-cameraY); drawMiningCracks(x*TILE-cameraX, y*TILE-cameraY, world[y][x]); }
   const px = player.x*TILE-cameraX, py = player.y*TILE-cameraY;
   ctx.fillStyle = '#e4b273'; ctx.fillRect(px+3, py+2, player.width*TILE-6, TILE*.72); ctx.fillStyle = '#bd6747'; ctx.fillRect(px+3, py+TILE*.72, player.width*TILE-6, TILE*.98); ctx.fillStyle = '#263c3b'; ctx.fillRect(px+5, py+7, 4, 4); ctx.fillRect(px+player.width*TILE-9, py+7, 4, 4); ctx.fillStyle = '#172323'; ctx.fillRect(px+3, py+TILE*1.55, player.width*TILE-6, 3);
 }
@@ -101,7 +117,7 @@ function updateReadout() { document.querySelector('#coordinates').textContent = 
 function showToast(text) { const toast = document.querySelector('#toast'); toast.textContent = text; toast.classList.add('visible'); clearTimeout(hintTimer); hintTimer = setTimeout(() => toast.classList.remove('visible'), 1300); }
 window.addEventListener('keydown', event => { keys[event.key.toLowerCase()] = true; if (event.code === 'Space') { event.preventDefault(); if (player.grounded) player.vy = -8; } if (/^[1-6]$/.test(event.key)) { selected = Number(event.key)-1; updateInventory(); } });
 window.addEventListener('keyup', event => { keys[event.key.toLowerCase()] = false; });
-canvas.addEventListener('mousedown', interact); canvas.addEventListener('contextmenu', event => event.preventDefault());
+canvas.addEventListener('click', interact); canvas.addEventListener('contextmenu', event => { event.preventDefault(); interact(event); });
 document.querySelector('#hotbar').addEventListener('click', event => { const slot = event.target.closest('.slot'); if (slot) { selected = Number(slot.dataset.slot); updateInventory(); } });
 document.querySelector('#reset-world').addEventListener('click', generateWorld); window.addEventListener('resize', resize);
 resize(); generateWorld(); updateInventory(); requestAnimationFrame(loop);
