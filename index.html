@@ -30,6 +30,11 @@
         <div class="readout"><div><span>COORDINATES</span><strong id="coordinates">000, 000</strong></div><div><span>ALTITUDE</span><strong id="altitude">SURFACE</strong></div></div>
         <div class="inventory-title"><span>BACKPACK</span><span id="inventory-total">0 items</span></div>
         <div class="inventory" id="inventory"></div>
+        <button class="craft-toggle" id="craft-toggle" type="button" aria-expanded="false">CRAFTING <span>+</span></button>
+        <div class="crafting-menu" id="crafting-menu" hidden>
+          <button class="recipe" type="button" data-recipe="sticks"><span><b>WOOD STICKS</b><small>5 wood</small></span><strong>CRAFT</strong></button>
+          <button class="recipe" type="button" data-recipe="planks"><span><b>WOOD PLANKS</b><small>5 wood</small></span><strong>CRAFT</strong></button>
+        </div>
         <div class="controls"><span class="eyebrow">CONTROLS</span><p><kbd>A</kbd><kbd>D</kbd> MOVE <kbd>SPACE</kbd> JUMP</p><p><span class="mouse-icon">◉</span> MINE <span class="mouse-icon">◌</span> PLACE</p></div>
       </aside>
     </section>
