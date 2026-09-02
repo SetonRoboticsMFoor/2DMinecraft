@@ -61,7 +61,13 @@ function generateWorld() {
       }
     }
   }
-  player.x = 14; player.y = surface[14] - player.height - .05; player.vx = 0; player.vy = 0;
+  let spawnX = 14;
+  for (let offset = 0; offset < WORLD_W / 2; offset += 1) {
+    const candidates = [14 - offset, 14 + offset];
+    const clearCandidate = candidates.find(candidate => candidate >= 0 && candidate < WORLD_W && !isSolidAt(candidate + .35, surface[candidate] - .5) && !isSolidAt(candidate + .35, surface[candidate] - 1.5));
+    if (clearCandidate !== undefined) { spawnX = clearCandidate; break; }
+  }
+  player.x = spawnX; player.y = surface[spawnX] - player.height - .05; player.vx = 0; player.vy = 0;
   player.facing = 1; player.animationTime = 0; player.equippedTool = null;
   miningProgress.clear();
   Object.keys(inventory).forEach(item => { inventory[item] = 0; });
