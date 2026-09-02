@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Blockbound | 2D Minecraft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">▦</span><span>BLOCKBOUND</span><span class="brand-sub">/ FIELD 01</span></div>
+      <div class="status-line"><span class="status-dot"></span> WORLD ONLINE <span class="divider">|</span> DAY <span id="day-count">01</span></div>
+      <button class="icon-button" id="reset-world" title="Generate a new world" aria-label="Generate a new world">↻</button>
+    </header>
+
+    <section class="game-frame">
+      <div class="canvas-wrap">
+        <canvas id="game" aria-label="2D block world"></canvas>
+        <div class="crosshair" aria-hidden="true"></div>
+        <div class="hint" id="hint"><strong>EXPLORE THE SURFACE</strong><span>WASD / ARROWS to move · SPACE to jump · click to mine · right-click to place</span></div>
+        <div class="toast" id="toast"></div>
+      </div>
+      <aside class="sidebar">
+        <div class="side-heading"><span>FIELD NOTES</span><span class="tiny-label">LIVE</span></div>
+        <div class="objective"><span class="eyebrow">CURRENT OBJECTIVE</span><strong id="objective-text">Gather wood to begin</strong><div class="progress-track"><span id="progress-bar"></span></div><small id="objective-count">0 / 8 logs</small></div>
+        <div class="readout"><div><span>COORDINATES</span><strong id="coordinates">000, 000</strong></div><div><span>ALTITUDE</span><strong id="altitude">SURFACE</strong></div></div>
+        <div class="inventory-title"><span>BACKPACK</span><span id="inventory-total">0 items</span></div>
+        <div class="inventory" id="inventory"></div>
+        <div class="controls"><span class="eyebrow">CONTROLS</span><p><kbd>A</kbd><kbd>D</kbd> MOVE <kbd>SPACE</kbd> JUMP</p><p><span class="mouse-icon">◉</span> MINE <span class="mouse-icon">◌</span> PLACE</p></div>
+      </aside>
+    </section>
+
+    <nav class="hotbar" id="hotbar" aria-label="Inventory hotbar"></nav>
+    <footer><span>BLOCKBOUND ENGINE v0.1</span><span>SEED <b id="seed-value">----</b></span><span>© FIELDWORKS</span></footer>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
