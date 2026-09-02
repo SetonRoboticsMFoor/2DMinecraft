@@ -13,12 +13,19 @@ const blocks = {
   coal: { name: 'Coal', solid: true, color: '#48565a', top: '#28363a' }
 };
 const hotbarItems = ['grass', 'dirt', 'stone', 'wood', 'leaves', 'coal'];
-const backpackItems = [...hotbarItems, 'sticks', 'planks'];
+const backpackItems = [...hotbarItems, 'sticks', 'planks', 'pickaxe'];
 const miningHitsRequired = { grass: 1, leaves: 2, wood: 5, stone: 10 };
-const inventory = { grass: 8, dirt: 8, stone: 0, wood: 0, leaves: 0, coal: 0, sticks: 0, planks: 0 };
-const recipes = { sticks: 'WOOD STICKS', planks: 'WOOD PLANKS' };
-const itemNames = { sticks: 'Wood Sticks', planks: 'Wood Planks' };
+const inventory = { grass: 8, dirt: 8, stone: 0, wood: 0, leaves: 0, coal: 0, sticks: 0, planks: 0, pickaxe: 0 };
+const recipes = { sticks: 'WOOD STICKS', planks: 'WOOD PLANKS', pickaxe: 'WOODEN PICKAXE' };
+const itemNames = { sticks: 'Wood Sticks', planks: 'Wood Planks', pickaxe: 'Wooden Pickaxe' };
+const objectives = [
+  { text: 'Mine 10 wood', count: () => inventory.wood, target: 10, label: 'logs' },
+  { text: 'Craft 1 wood stick', count: () => inventory.sticks, target: 1, label: 'stick' },
+  { text: 'Craft 1 wood plank', count: () => inventory.planks, target: 1, label: 'plank' },
+  { text: 'Craft 1 wooden pickaxe', count: () => inventory.pickaxe, target: 1, label: 'pickaxe' }
+];
 let craftingOpen = false;
+let objectiveIndex = 0;
 let world = [], surface = [], seed = 0, selected = 0, day = 1;
 let viewWidth = 0, viewHeight = 0, cameraX = 0, cameraY = 0, lastTime = 0, hintTimer;
 const miningProgress = new Map();
@@ -54,9 +61,10 @@ function generateWorld() {
     }
   }
   player.x = 14; player.y = surface[14] - player.height - .05; player.vx = 0; player.vy = 0;
-  player.facing = 1; player.animationTime = 0;
+  player.facing = 1; player.animationTime = 0; player.equipped = false;
   miningProgress.clear();
   Object.keys(inventory).forEach(item => { inventory[item] = item === 'grass' || item === 'dirt' ? 8 : 0; });
+  objectiveIndex = 0;
   document.querySelector('#seed-value').textContent = seed;
   day += 1; document.querySelector('#day-count').textContent = String(day).padStart(2, '0');
   showToast('NEW FIELD GENERATED');
@@ -145,6 +153,16 @@ function drawPlayer(x, y) {
   ctx.fillRect(x + width - 5, headY + TILE * .75 - armSwing, 4, TILE * .58);
   ctx.fillStyle = skinLight;
   ctx.fillRect(x + width - 5, headY + TILE * .77 - armSwing, 2, TILE * .25);
+  if (player.equipped) {
+    ctx.save();
+    ctx.translate(x + width - 1, headY + TILE * .91 - armSwing);
+    ctx.rotate(-.55);
+    ctx.fillStyle = '#9b663d';
+    ctx.fillRect(0, 0, 3, 17);
+    ctx.fillStyle = '#9fa9a0';
+    ctx.fillRect(-4, -2, 11, 4);
+    ctx.restore();
+  }
 
   ctx.fillStyle = skin;
   ctx.fillRect(x + 3, headY + 2, width - 6, TILE * .65);
@@ -172,14 +190,15 @@ function render() {
 function loop(time) { const dt = Math.min(.033, (time-lastTime)/1000 || 0); lastTime = time; update(dt); render(); requestAnimationFrame(loop); }
 function screenToTile(event) { const rect = canvas.getBoundingClientRect(); return { x: Math.floor((event.clientX - rect.left + cameraX) / TILE), y: Math.floor((event.clientY - rect.top + cameraY) / TILE) }; }
 function inReach(x, y) { return Math.hypot(x + .5 - (player.x + .35), y + .5 - (player.y + .8)) < 3; }
-function interact(event) { event.preventDefault(); const { x, y } = screenToTile(event); if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H || !inReach(x, y)) return showToast('TOO FAR AWAY'); const target = `${x},${y}`; if (event.button === 2) { const type = hotbarItems[selected]; if (world[y][x] === 'air' && inventory[type] > 0 && !collides(x, y)) { world[y][x] = type; inventory[type] -= 1; showToast(`PLACED ${blocks[type].name.toUpperCase()}`); } } else if (world[y][x] !== 'air') { const type = world[y][x]; const hits = (miningProgress.get(target) || 0) + 1; miningProgress.set(target, hits); const requiredHits = miningHitsRequired[type] || 1; if (hits < requiredHits) { showToast(`${blocks[type].name.toUpperCase()} ${hits} / ${requiredHits}`); } else { world[y][x] = 'air'; miningProgress.delete(target); if (type !== 'grass' || inventory.grass < 24) inventory[type] += 1; showToast(`MINED ${blocks[type].name.toUpperCase()}`); } } updateInventory(); }
+function interact(event) { event.preventDefault(); const { x, y } = screenToTile(event); if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H || !inReach(x, y)) return showToast('TOO FAR AWAY'); const target = `${x},${y}`; if (event.button === 2) { const type = hotbarItems[selected]; if (world[y][x] === 'air' && inventory[type] > 0 && !collides(x, y)) { world[y][x] = type; inventory[type] -= 1; showToast(`PLACED ${blocks[type].name.toUpperCase()}`); } } else if (world[y][x] !== 'air') { const type = world[y][x]; const hits = (miningProgress.get(target) || 0) + 1; miningProgress.set(target, hits); const requiredHits = type === 'stone' && player.equipped ? 5 : miningHitsRequired[type] || 1; if (hits < requiredHits) { showToast(`${blocks[type].name.toUpperCase()} ${hits} / ${requiredHits}`); } else { world[y][x] = 'air'; miningProgress.delete(target); const dropped = type !== 'leaves' || Math.random() < .1; if (dropped && (type !== 'grass' || inventory.grass < 24)) inventory[type] += 1; showToast(dropped ? `MINED ${blocks[type].name.toUpperCase()}` : 'LEAVES DROPPED NOTHING'); } } updateInventory(); }
 function blockIcon(type) { return `<i class="block-icon" style="background:${blocks[type].color};box-shadow:inset 0 4px ${blocks[type].top}, inset 0 -5px rgba(20,35,33,.12)"></i>`; }
 function itemIcon(type) { return blocks[type] ? blockIcon(type) : `<i class="block-icon crafted-icon ${type}"></i>`; }
 function itemName(type) { return blocks[type]?.name || itemNames[type]; }
-function updateCrafting() { document.querySelectorAll('.recipe').forEach(button => { button.disabled = inventory.wood < 5; }); }
-function craft(item) { if (!recipes[item] || inventory.wood < 5) return showToast('NEED 5 WOOD'); inventory.wood -= 5; inventory[item] += 1; updateInventory(); showToast(`CRAFTED ${recipes[item]}`); }
-function updateInventory() { const total = Object.values(inventory).reduce((a,b) => a+b, 0); document.querySelector('#inventory-total').textContent = `${total} items`; document.querySelector('#inventory').innerHTML = backpackItems.filter(item => inventory[item] > 0).map(item => `<div class="item" title="${itemName(item)}">${itemIcon(item)}<span class="item-label">${itemName(item)}</span><b>${inventory[item]}</b></div>`).join(''); document.querySelector('#hotbar').innerHTML = hotbarItems.map((item, index) => `<button class="slot ${index === selected ? 'active' : ''}" data-slot="${index}" title="${blocks[item].name}"><span>0${index+1}</span>${blockIcon(item)}<b>${inventory[item]}</b></button>`).join(''); updateCrafting(); }
-function updateReadout() { document.querySelector('#coordinates').textContent = `${String(Math.floor(player.x)).padStart(3,'0')}, ${String(Math.floor(player.y)).padStart(3,'0')}`; document.querySelector('#altitude').textContent = player.grounded ? 'SURFACE' : player.vy < 0 ? 'RISING' : 'FALLING'; const logs = inventory.wood; document.querySelector('#objective-count').textContent = `${Math.min(logs,8)} / 8 logs`; document.querySelector('#progress-bar').style.width = `${Math.min(100, logs/8*100)}%`; document.querySelector('#objective-text').textContent = logs >= 8 ? 'Crafting is unlocked' : 'Gather wood to begin'; }
+function updateCrafting() { document.querySelectorAll('.recipe').forEach(button => { const item = button.dataset.recipe; button.disabled = item === 'pickaxe' ? inventory.planks < 1 || inventory.sticks < 1 : inventory.wood < 5; }); }
+function updateObjective() { while (objectiveIndex < objectives.length && objectives[objectiveIndex].count() >= objectives[objectiveIndex].target) objectiveIndex += 1; const objective = objectives[Math.min(objectiveIndex, objectives.length - 1)]; const progress = objective.count(); document.querySelector('#objective-text').textContent = objectiveIndex < objectives.length ? objective.text : 'All objectives complete'; document.querySelector('#objective-count').textContent = objectiveIndex < objectives.length ? `${Math.min(progress, objective.target)} / ${objective.target} ${objective.label}` : '4 / 4 complete'; document.querySelector('#progress-bar').style.width = `${objectiveIndex < objectives.length ? Math.min(100, progress / objective.target * 100) : 100}%`; }
+function craft(item) { if (!recipes[item]) return; if (item === 'pickaxe') { if (inventory.planks < 1 || inventory.sticks < 1) return showToast('NEED 1 PLANK + 1 STICK'); inventory.planks -= 1; inventory.sticks -= 1; } else { if (inventory.wood < 5) return showToast('NEED 5 WOOD'); inventory.wood -= 5; } inventory[item] += 1; updateInventory(); showToast(`CRAFTED ${recipes[item]}`); }
+function updateInventory() { const total = Object.values(inventory).reduce((a,b) => a+b, 0); document.querySelector('#inventory-total').textContent = `${total} items`; document.querySelector('#inventory').innerHTML = backpackItems.filter(item => inventory[item] > 0).map(item => `<div class="item ${item === 'pickaxe' && player.equipped ? 'equipped' : ''}" title="${itemName(item)}">${itemIcon(item)}<span class="item-label">${itemName(item)}</span><b>${inventory[item]}</b></div>`).join(''); document.querySelector('#hotbar').innerHTML = hotbarItems.map((item, index) => `<button class="slot ${index === selected ? 'active' : ''}" data-slot="${index}" title="${blocks[item].name}"><span>0${index+1}</span>${blockIcon(item)}<b>${inventory[item]}</b></button>`).join(''); updateCrafting(); updateObjective(); }
+function updateReadout() { document.querySelector('#coordinates').textContent = `${String(Math.floor(player.x)).padStart(3,'0')}, ${String(Math.floor(player.y)).padStart(3,'0')}`; document.querySelector('#altitude').textContent = player.grounded ? 'SURFACE' : player.vy < 0 ? 'RISING' : 'FALLING'; updateObjective(); }
 function showToast(text) { const toast = document.querySelector('#toast'); toast.textContent = text; toast.classList.add('visible'); clearTimeout(hintTimer); hintTimer = setTimeout(() => toast.classList.remove('visible'), 1300); }
 window.addEventListener('keydown', event => { keys[event.key.toLowerCase()] = true; if (event.code === 'Space') { event.preventDefault(); if (player.grounded) player.vy = -8; } if (/^[1-6]$/.test(event.key)) { selected = Number(event.key)-1; updateInventory(); } });
 window.addEventListener('keyup', event => { keys[event.key.toLowerCase()] = false; });
@@ -187,5 +206,6 @@ canvas.addEventListener('click', interact); canvas.addEventListener('contextmenu
 document.querySelector('#hotbar').addEventListener('click', event => { const slot = event.target.closest('.slot'); if (slot) { selected = Number(slot.dataset.slot); updateInventory(); } });
 document.querySelector('#craft-toggle').addEventListener('click', event => { craftingOpen = !craftingOpen; const menu = document.querySelector('#crafting-menu'); menu.hidden = !craftingOpen; event.currentTarget.setAttribute('aria-expanded', String(craftingOpen)); event.currentTarget.querySelector('span').textContent = craftingOpen ? '−' : '+'; });
 document.querySelector('#crafting-menu').addEventListener('click', event => { const recipe = event.target.closest('.recipe'); if (recipe) craft(recipe.dataset.recipe); });
+document.querySelector('#inventory').addEventListener('dblclick', event => { const item = event.target.closest('.item'); if (item && inventory.pickaxe > 0 && item.querySelector('.crafted-icon.pickaxe')) { player.equipped = true; updateInventory(); showToast('WOODEN PICKAXE EQUIPPED'); } });
 document.querySelector('#reset-world').addEventListener('click', generateWorld); window.addEventListener('resize', resize);
 resize(); generateWorld(); updateInventory(); requestAnimationFrame(loop);
