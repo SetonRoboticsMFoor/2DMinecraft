@@ -13,11 +13,11 @@ const blocks = {
   coal: { name: 'Coal', solid: true, color: '#48565a', top: '#28363a' }
 };
 const hotbarItems = ['grass', 'dirt', 'stone', 'wood', 'leaves', 'coal'];
-const backpackItems = [...hotbarItems, 'sticks', 'planks', 'axe', 'shovel'];
-const miningHitsRequired = { grass: 1, leaves: 2, wood: 5, stone: 10 };
-const inventory = { grass: 0, dirt: 0, stone: 0, wood: 0, leaves: 0, coal: 0, sticks: 0, planks: 0, axe: 0, shovel: 0 };
-const recipes = { sticks: 'WOOD STICKS', planks: 'WOOD PLANKS', axe: 'WOODEN AXE', shovel: 'WOODEN SHOVEL' };
-const itemNames = { sticks: 'Wood Sticks', planks: 'Wood Planks', axe: 'Wooden Axe', shovel: 'Wooden Shovel' };
+const backpackItems = [...hotbarItems, 'sticks', 'planks', 'pickaxe', 'axe', 'shovel'];
+const miningHitsRequired = { grass: 1, dirt: 3, leaves: 2, wood: 5, coal: 7, stone: 10 };
+const inventory = { grass: 0, dirt: 0, stone: 0, wood: 0, leaves: 0, coal: 0, sticks: 0, planks: 0, pickaxe: 0, axe: 0, shovel: 0 };
+const recipes = { sticks: 'WOOD STICKS', planks: 'WOOD PLANKS', pickaxe: 'WOODEN PICKAXE', axe: 'WOODEN AXE', shovel: 'WOODEN SHOVEL' };
+const itemNames = { sticks: 'Wood Sticks', planks: 'Wood Planks', pickaxe: 'Wooden Pickaxe', axe: 'Wooden Axe', shovel: 'Wooden Shovel' };
 const objectives = [
   { text: 'Mine 10 wood', count: () => inventory.wood, target: 10, label: 'logs' },
   { text: 'Craft 1 wood stick', count: () => inventory.sticks, target: 1, label: 'stick' },
