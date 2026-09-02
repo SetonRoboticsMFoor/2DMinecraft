@@ -1,5 +1,6 @@
 .crafted-icon.axe { width:28px !important; height:23px !important; background:linear-gradient(65deg,transparent 42%,#9b663d 43% 55%,transparent 56%), linear-gradient(#9fa9a0 0 25%,transparent 26%); box-shadow:none; }
 * { box-sizing: border-box; }
+.crafted-icon.shovel { width:28px !important; height:23px !important; background:linear-gradient(65deg,transparent 42%,#9b663d 43% 55%,transparent 56%), linear-gradient(#9fa9a0 0 25%,transparent 26%); box-shadow:none; }
 :root { --ink:#172323; --muted:#687575; --line:#d8dfda; --paper:#f4f6f1; --lime:#bbd957; --orange:#ee814e; --sky:#b8dfe1; }
 body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:'DM Mono', monospace; }
 .game-shell { width:min(1440px, 100%); margin:auto; padding:26px 38px 20px; }
