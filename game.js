@@ -19,7 +19,7 @@ let world = [], surface = [], seed = 0, selected = 0, day = 1;
 let viewWidth = 0, viewHeight = 0, cameraX = 0, cameraY = 0, lastTime = 0, hintTimer;
 const miningProgress = new Map();
 const keys = {};
-const player = { x: 0, y: 0, width: 0.7, height: 1.7, vx: 0, vy: 0, grounded: false };
+const player = { x: 0, y: 0, width: 0.7, height: 1.7, vx: 0, vy: 0, grounded: false, facing: 1, animationTime: 0 };
 
 function seededRandom() {
   let value = seed;
@@ -50,6 +50,7 @@ function generateWorld() {
     }
   }
   player.x = 14; player.y = surface[14] - player.height - .05; player.vx = 0; player.vy = 0;
+  player.facing = 1; player.animationTime = 0;
   miningProgress.clear();
   Object.keys(inventory).forEach(item => { inventory[item] = item === 'grass' || item === 'dirt' ? 8 : 0; });
   document.querySelector('#seed-value').textContent = seed;
@@ -61,6 +62,8 @@ function isSolidAt(x, y) { const bx = Math.floor(x), by = Math.floor(y); return 
 function collides(x, y) { return isSolidAt(x + .08, y + .08) || isSolidAt(x + player.width - .08, y + .08) || isSolidAt(x + .08, y + player.height - .03) || isSolidAt(x + player.width - .08, y + player.height - .03); }
 function update(dt) {
   const left = keys.a || keys.arrowleft, right = keys.d || keys.arrowright;
+  if (left && !right) player.facing = -1;
+  if (right && !left) player.facing = 1;
   player.vx += ((right ? 5 : 0) - (left ? 5 : 0) - player.vx) * Math.min(1, dt * 12);
   player.vy = Math.min(player.vy + 18 * dt, 16);
   const nextX = player.x + player.vx * dt;
@@ -69,6 +72,7 @@ function update(dt) {
   player.grounded = false;
   if (!collides(player.x, nextY)) player.y = nextY;
   else { if (player.vy > 0) player.grounded = true; player.vy = 0; }
+  player.animationTime += dt;
   cameraX += (player.x * TILE - viewWidth / 2 - cameraX) * Math.min(1, dt * 5);
   cameraY += (player.y * TILE - viewHeight * .52 - cameraY) * Math.min(1, dt * 5);
   cameraX = Math.max(0, Math.min(WORLD_W * TILE - viewWidth, cameraX)); cameraY = Math.max(0, Math.min(WORLD_H * TILE - viewHeight, cameraY));
@@ -99,13 +103,67 @@ function drawMiningCracks(x, y, type) {
   ctx.stroke();
   ctx.restore();
 }
+function drawPlayer(x, y) {
+  const width = player.width * TILE, height = player.height * TILE;
+  const moving = Math.abs(player.vx) > .2;
+  const jumping = !player.grounded;
+  const walk = moving ? Math.sin(player.animationTime * 13) : 0;
+  const bob = moving && player.grounded ? Math.abs(Math.sin(player.animationTime * 13)) * 1.2 : 0;
+  const skin = '#e4b273', skinLight = '#f3ca8a', shirt = '#bd6747', shirtShadow = '#934b3b';
+  const pants = '#314c61', pantsShadow = '#233746', hair = '#172323';
+  const center = x + width / 2, headY = y + 2 - (jumping ? 1 : bob);
+  const legSwing = jumping ? 3 : walk * 4, armSwing = jumping ? 0 : walk * 3;
+
+  ctx.save();
+  ctx.translate(center, 0);
+  ctx.scale(player.facing, 1);
+  ctx.translate(-center, 0);
+  ctx.fillStyle = 'rgba(23,35,35,.18)';
+  ctx.fillRect(x + 3, y + height - 1, width - 6, 3);
+
+  ctx.fillStyle = shirtShadow;
+  ctx.fillRect(x + 2, headY + TILE * .74 + armSwing, 4, TILE * .62);
+  ctx.fillStyle = pantsShadow;
+  ctx.fillRect(center - 5 - legSwing, y + TILE * 1.24, 5, TILE * .43);
+  ctx.fillRect(center + 1 + legSwing, y + TILE * 1.24, 5, TILE * .43);
+  ctx.fillStyle = pants;
+  ctx.fillRect(center - 6 - legSwing, y + TILE * 1.2, 6, TILE * .42);
+  ctx.fillRect(center + legSwing, y + TILE * 1.2, 6, TILE * .42);
+  ctx.fillStyle = '#1d2b2b';
+  ctx.fillRect(center - 7 - legSwing, y + TILE * 1.58, 7, 3);
+  ctx.fillRect(center + legSwing, y + TILE * 1.58, 7, 3);
+
+  ctx.fillStyle = shirt;
+  ctx.fillRect(x + 3, headY + TILE * .68, width - 6, TILE * .62);
+  ctx.fillStyle = shirtShadow;
+  ctx.fillRect(x + 3, headY + TILE * 1.16, width - 6, 3);
+  ctx.fillStyle = skin;
+  ctx.fillRect(x + width - 5, headY + TILE * .75 - armSwing, 4, TILE * .58);
+  ctx.fillStyle = skinLight;
+  ctx.fillRect(x + width - 5, headY + TILE * .77 - armSwing, 2, TILE * .25);
+
+  ctx.fillStyle = skin;
+  ctx.fillRect(x + 3, headY + 2, width - 6, TILE * .65);
+  ctx.fillStyle = skinLight;
+  ctx.fillRect(x + 4, headY + 3, width * .45, TILE * .3);
+  ctx.fillStyle = hair;
+  ctx.fillRect(x + 3, headY + 1, width - 6, 5);
+  ctx.fillRect(x + 3, headY + 5, 4, 7);
+  ctx.fillStyle = '#263c3b';
+  ctx.fillRect(x + (player.facing > 0 ? width - 9 : 5), headY + 9, 4, 4);
+  ctx.fillStyle = '#fff1ca';
+  ctx.fillRect(x + (player.facing > 0 ? width - 8 : 5), headY + 9, 2, 2);
+  ctx.fillStyle = '#8e493b';
+  ctx.fillRect(x + (player.facing > 0 ? width - 8 : 5), headY + 17, 4, 2);
+  ctx.restore();
+}
 function render() {
   ctx.clearRect(0, 0, viewWidth, viewHeight); ctx.fillStyle = '#b8dfe1'; ctx.fillRect(0, 0, viewWidth, viewHeight);
   ctx.fillStyle = 'rgba(255,247,200,.8)'; ctx.beginPath(); ctx.arc(viewWidth*.78, viewHeight*.2, 30, 0, Math.PI*2); ctx.fill();
   const startX = Math.max(0, Math.floor(cameraX / TILE) - 1), endX = Math.min(WORLD_W, Math.ceil((cameraX + viewWidth) / TILE) + 1), startY = Math.max(0, Math.floor(cameraY / TILE) - 1), endY = Math.min(WORLD_H, Math.ceil((cameraY + viewHeight) / TILE) + 1);
   for (let y = startY; y < endY; y += 1) for (let x = startX; x < endX; x += 1) { drawBlock(world[y][x], x*TILE-cameraX, y*TILE-cameraY); drawMiningCracks(x*TILE-cameraX, y*TILE-cameraY, world[y][x]); }
   const px = player.x*TILE-cameraX, py = player.y*TILE-cameraY;
-  ctx.fillStyle = '#e4b273'; ctx.fillRect(px+3, py+2, player.width*TILE-6, TILE*.72); ctx.fillStyle = '#bd6747'; ctx.fillRect(px+3, py+TILE*.72, player.width*TILE-6, TILE*.98); ctx.fillStyle = '#263c3b'; ctx.fillRect(px+5, py+7, 4, 4); ctx.fillRect(px+player.width*TILE-9, py+7, 4, 4); ctx.fillStyle = '#172323'; ctx.fillRect(px+3, py+TILE*1.55, player.width*TILE-6, 3);
+  drawPlayer(px, py);
 }
 function loop(time) { const dt = Math.min(.033, (time-lastTime)/1000 || 0); lastTime = time; update(dt); render(); requestAnimationFrame(loop); }
 function screenToTile(event) { const rect = canvas.getBoundingClientRect(); return { x: Math.floor((event.clientX - rect.left + cameraX) / TILE), y: Math.floor((event.clientY - rect.top + cameraY) / TILE) }; }
